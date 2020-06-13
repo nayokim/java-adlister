@@ -25,15 +25,27 @@ public class MySQLUsersDao implements Users {
     @Override
     public User findByUsername(String username) {
         String query = "SELECT * FROM users WHERE username = ? LIMIT 1";
+
         try {
-            PreparedStatement stmt = connection.prepareStatement(query);
+            PreparedStatement stmt = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, username);
-            return extractUser(stmt.executeQuery());
+
+            ResultSet rs = stmt.executeQuery();
+            // so we're looking for one specific username and IF there is a resultset returned via .next (so IF it found a matching resultset row from your query), give me this User you found in the database and take each column to make this User (what is the users id? what is the users username? what is the users email? what is the users password? okay! I got all that, here's your user object from what I found!)Otherwise, the IF won't fire - no resultset was found, therefore I've got nothing to do
+            if(rs.next()) {
+                return new User(
+                        rs.getLong("id"),
+                        rs.getString("username"),
+                        rs.getString("email"),
+                        rs.getString("password")
+                );
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Error finding a user by username", e);
         }
-    }
 
+        return null;
+    }
     @Override
     public Long insert(User user) {
         String query = "INSERT INTO users(username, email, password) VALUES (?, ?, ?)";
@@ -51,16 +63,16 @@ public class MySQLUsersDao implements Users {
         }
     }
 
-    private User extractUser(ResultSet rs) throws SQLException {
-        if (! rs.next()) {
-            return null;
-        }
-        return new User(
-            rs.getLong("id"),
-            rs.getString("username"),
-            rs.getString("email"),
-            rs.getString("password")
-        );
-    }
+//    private User extractUser(ResultSet rs) throws SQLException {
+//        if (! rs.next()) {
+//            return null;
+//        }
+//        return new User(
+//            rs.getLong("id"),
+//            rs.getString("username"),
+//            rs.getString("email"),
+//            rs.getString("password")
+//        );
+//    }
 
 }
